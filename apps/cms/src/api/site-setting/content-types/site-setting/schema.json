@@ -1,0 +1,75 @@
+{
+  "kind": "singleType",
+  "collectionName": "site_setting",
+  "info": {
+    "singularName": "site-setting",
+    "pluralName": "site-settings",
+    "displayName": "Evenementinstellingen"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "siteTitle": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    },
+    "eventDate": {
+      "type": "datetime"
+    },
+    "eventEnd": {
+      "type": "datetime"
+    },
+    "dateNote": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "targetAmount": {
+      "type": "decimal",
+      "min": 0,
+      "default": 0
+    },
+    "additionalAmount": {
+      "type": "decimal",
+      "min": 0,
+      "default": 0
+    },
+    "actionUrl": {
+      "type": "string"
+    },
+    "seriousRequestUrl": {
+      "type": "string"
+    },
+    "contactEmail": {
+      "type": "email"
+    },
+    "heroTitle": {
+      "type": "string"
+    },
+    "heroIntro": {
+      "type": "text"
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "heroImageAlt": {
+      "type": "string"
+    },
+    "footerText": {
+      "type": "text"
+    },
+    "labels": {
+      "type": "json"
+    }
+  }
+}

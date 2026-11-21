@@ -1,0 +1,112 @@
+name: Test and deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          CONTENT_MODE: demo
+          APP_KEYS: ci-build-only-1,ci-build-only-2
+          ADMIN_JWT_SECRET: ci-build-only-secret
+          API_TOKEN_SALT: ci-build-only-salt
+          TRANSFER_TOKEN_SALT: ci-build-only-transfer
+          ENCRYPTION_KEY: ci-build-only-encryption
+
+  verify-cms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_DATABASE: glazenhuis_test
+          MARIADB_USER: glazenhuis_test
+          MARIADB_PASSWORD: integration-only
+          MARIADB_ROOT_PASSWORD: integration-root-only
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 3306
+      DATABASE_NAME: glazenhuis_test
+      DATABASE_USERNAME: glazenhuis_test
+      DATABASE_PASSWORD: integration-only
+      INTEGRATION_TEST: 'true'
+      SEED_CONTENT: 'true'
+      STRAPI_TELEMETRY_DISABLED: 'true'
+      CONTENT_MODE: demo
+      APP_KEYS: ci-only-one,ci-only-two
+      ADMIN_JWT_SECRET: ci-only-secret
+      API_TOKEN_SALT: ci-only-salt
+      TRANSFER_TOKEN_SALT: ci-only-transfer
+      ENCRYPTION_KEY: ci-only-key
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm run build
+      - run: npm run test:integration
+
+  deploy:
+    needs: [ verify, verify-cms ]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Deploy tested commit over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing DEPLOY_HOST}"
+          : "${DEPLOY_USER:?Missing DEPLOY_USER}"
+          : "${DEPLOY_SSH_KEY:?Missing DEPLOY_SSH_KEY}"
+          : "${DEPLOY_KNOWN_HOSTS:?Missing DEPLOY_KNOWN_HOSTS}"
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf "$ssh_dir"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key"
+          ssh -i "$ssh_dir/key" -p "${DEPLOY_PORT:-22}" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            "$DEPLOY_USER@$DEPLOY_HOST" "/usr/local/bin/glazenhuis-deploy $DEPLOY_SHA"

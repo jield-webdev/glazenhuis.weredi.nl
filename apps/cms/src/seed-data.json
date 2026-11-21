@@ -1,0 +1,95 @@
+{
+  "settings": {
+    "siteTitle": "Glazen Huis Were Di",
+    "description": "Were Di komt samen 24 uur in actie voor 3FM Serious Request. Ontdek onze acties, het laatste nieuws en de foto’s.",
+    "dateNote": "De datum maken we binnenkort bekend.",
+    "location": "Were Di · Valkenswaard",
+    "targetAmount": 0,
+    "additionalAmount": 0,
+    "seriousRequestUrl": "https://www.npo3fm.nl/thema/serious-request",
+    "heroTitle": "Samen maken\nwe het verschil.",
+    "heroIntro": "24 uur. Eén Glazen Huis. Heel Were Di in actie voor 3FM Serious Request. Doe mee, volg de verhalen en steun het goede doel.",
+    "heroImageAlt": "Sfeerbeeld van de campus van Were Di",
+    "footerText": "Samen in actie voor 3FM Serious Request.",
+    "labels": {
+      "home": "Home",
+      "news": "Nieuws",
+      "actions": "Acties",
+      "photos": "Foto’s",
+      "about": "Over het Glazen Huis",
+      "donate": "Steun onze actie",
+      "datePending": "Datum volgt binnenkort",
+      "campaign": "Were Di voor 3FM Serious Request",
+      "raised": "Samen opgehaald",
+      "target": "Ons streefbedrag",
+      "targetPending": "Het streefbedrag volgt binnenkort",
+      "allActions": "Bekijk alle acties",
+      "allNews": "Alle nieuwsberichten",
+      "allPhotos": "Bekijk de foto’s",
+      "actionsHeading": "Kleine acties. Groot verschil.",
+      "newsHeading": "Rondom het Glazen Huis",
+      "photosHeading": "Samen maken we herinneringen",
+      "actionsEmpty": "De eerste acties verschijnen hier binnenkort. Heb jij een idee? Laat het ons weten.",
+      "newsEmpty": "Binnenkort lees je hier het laatste nieuws.",
+      "photosEmpty": "De eerste foto’s volgen binnenkort. Kom later nog eens kijken.",
+      "contact": "Een idee of een vraag?",
+      "contactBody": "Wil je iets organiseren, helpen of meer weten? Neem contact op met de organisatie.",
+      "contactButton": "Neem contact op",
+      "aboutHeading": "24 uur samen in actie",
+      "aboutBody": "Een Glazen Huis op onze eigen school. Leerlingen en medewerkers van Were Di zetten zich samen 24 uur lang in voor 3FM Serious Request. Met acties, muziek en de energie van onze school maken we er iets bijzonders van.",
+      "aboutLink": "Meer over het Glazen Huis",
+      "srLabel": "Over 3FM Serious Request",
+      "readMore": "Lees het bericht",
+      "actionAmount": "Opgehaald met deze actie",
+      "back": "Terug naar het overzicht",
+      "privacy": "Privacy",
+      "admin": "Beheer",
+      "skip": "Direct naar inhoud",
+      "menu": "Menu",
+      "close": "Sluiten",
+      "previousPhoto": "Vorige foto",
+      "nextPhoto": "Volgende foto",
+      "openPhoto": "Bekijk foto",
+      "albumLink": "Bekijk het album",
+      "donationPending": "Onze persoonlijke actiepagina volgt binnenkort.",
+      "photoCredit": "Were Di · sfeerbeeld van de school",
+      "hours": "uur voor het goede doel",
+      "organizer": "Een initiatief van Scholengemeenschap Were Di, Valkenswaard."
+    }
+  },
+  "pages": [
+    {
+      "title": "Welkom bij het Glazen Huis",
+      "slug": "home",
+      "intro": "Onze school komt samen in actie.",
+      "body": "Op deze website volg je het Glazen Huis van Were Di."
+    },
+    {
+      "title": "Nieuws",
+      "slug": "nieuws",
+      "intro": "De voorbereidingen, de verhalen en straks het laatste nieuws vanuit ons Glazen Huis."
+    },
+    {
+      "title": "Onze acties",
+      "slug": "acties",
+      "intro": "Van een klein idee tot een mooie opbrengst. Ontdek hoe onze school in actie komt."
+    },
+    {
+      "title": "Foto’s",
+      "slug": "fotos",
+      "intro": "Een kijkje bij de voorbereidingen en straks bij het Glazen Huis."
+    },
+    {
+      "title": "Een Glazen Huis bij Were Di",
+      "slug": "over-het-glazen-huis",
+      "intro": "24 uur samen in actie voor 3FM Serious Request.",
+      "body": "## Onze school, ons Glazen Huis\nLeerlingen en medewerkers van Scholengemeenschap Were Di in Valkenswaard zetten zich 24 uur lang in voor 3FM Serious Request. Het Glazen Huis wordt een plek voor muziek, ontmoeting en acties voor het goede doel.\n\n## Wanneer?\nDe datum en het programma worden later bekendgemaakt. Houd deze website in de gaten.\n\n## Doe mee\nBedenk een actie met je klas, team of vrienden. Neem contact op met de organisatie om je idee te bespreken. Zodra onze persoonlijke actiepagina beschikbaar is, vind je de link op deze website."
+    },
+    {
+      "title": "Privacy",
+      "slug": "privacy",
+      "intro": "We gaan zorgvuldig om met jouw gegevens.",
+      "body": "## Bezoek aan deze website\nDeze website gebruikt geen advertentiecookies of externe tracking. De server verwerkt technische gegevens die nodig zijn om de website aan te bieden en te beveiligen.\n\n## Foto’s\nDe organisatie publiceert alleen foto’s waarvoor de benodigde toestemming is geregeld. Wil je een foto laten verwijderen? Neem contact op met Were Di via de contactgegevens op weredi.nl. Vermeld het album en de foto.\n\n## Contact\nAls je ons mailt, gebruiken we je gegevens om je vraag te beantwoorden. Donaties lopen via de externe actiepagina; daarop geldt het privacybeleid van die aanbieder."
+    }
+  ]
+}
