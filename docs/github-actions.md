@@ -120,13 +120,10 @@ deploy_port=22 # pas aan als SSH een andere poort gebruikt
    cat deploy_known_hosts
    ```
 
-   De volledige inhoud van `deploy_known_hosts` wordt straks `DEPLOY_KNOWN_HOSTS`. De vorm is:
+   De volledige inhoud (zonder #) van `deploy_known_hosts` wordt straks `DEPLOY_KNOWN_HOSTS`. De vorm is:
 
    ```text
-   # poort 22
-   server.example.org ssh-ed25519 AAAA...
-   # bijvoorbeeld poort 2222
-   [server.example.org]:2222 ssh-ed25519 AAAA...
+   jield.dev ssh-ed25519 AAAA...
    ```
 
    Gebruik de echte scanuitvoer, niet deze placeholders. Alleen een fingerprint of een public key zonder hostnaam

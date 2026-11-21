@@ -20,7 +20,7 @@ cd "$release"
 npm ci --include=dev
 npm test
 npm run typecheck
-npm run build
+BUILD_SHA="$sha" npm run build
 previous=$(readlink -f "$base/current" || true)
 ln -s "$release" "$base/current.next"
 mv -Tf "$base/current.next" "$base/current"
