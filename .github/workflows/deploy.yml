@@ -106,7 +106,16 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
           chmod 600 "$ssh_dir/key"
-          ssh -i "$ssh_dir/key" -p "${DEPLOY_PORT:-22}" \
+          deploy_port=${DEPLOY_PORT:-22}
+          known_host=$DEPLOY_HOST
+          if [[ "$deploy_port" != 22 ]]; then
+            known_host="[$DEPLOY_HOST]:$deploy_port"
+          fi
+          if ! ssh-keygen -F "$known_host" -f "$ssh_dir/known_hosts" > /dev/null; then
+            echo '::error::DEPLOY_KNOWN_HOSTS has no entry for DEPLOY_HOST and DEPLOY_PORT. Use the exact hostname/IP; non-default ports require [host]:port. See docs/github-actions.md.'
+            exit 1
+          fi
+          ssh -i "$ssh_dir/key" -p "$deploy_port" \
             -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
             -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" \
             "$DEPLOY_USER@$DEPLOY_HOST" "/usr/local/bin/glazenhuis-deploy $DEPLOY_SHA"
