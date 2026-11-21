@@ -3,7 +3,7 @@ set -euo pipefail
 # Installed root-owned at /usr/local/bin/glazenhuis-deploy. Invoked as deploy user.
 sha=${1:?Usage: glazenhuis-deploy COMMIT_SHA}
 [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid commit SHA' >&2; exit 1; }
-base=/srv/glazenhuis
+base=/var/lib/glazenhuis
 exec 9>"$base/deploy.lock"
 flock -n 9 || { echo 'Another deployment is running' >&2; exit 1; }
 release="$base/releases/$sha"

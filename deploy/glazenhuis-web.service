@@ -6,9 +6,9 @@ After=network.target mariadb.service
 Type=simple
 User=glazenhuis
 Group=glazenhuis
-WorkingDirectory=/srv/glazenhuis/current/apps/web
+WorkingDirectory=/var/lib/glazenhuis/current/apps/web
 Environment=NODE_ENV=production
-EnvironmentFile=/srv/glazenhuis/shared/web.env
+EnvironmentFile=/var/lib/glazenhuis/shared/web.env
 ExecStart=/usr/bin/npm run start
 Restart=on-failure
 RestartSec=5
@@ -17,7 +17,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/srv/glazenhuis/shared /srv/glazenhuis/releases
+ReadWritePaths=/var/lib/glazenhuis/shared /var/lib/glazenhuis/releases
 
 [Install]
 WantedBy=multi-user.target
