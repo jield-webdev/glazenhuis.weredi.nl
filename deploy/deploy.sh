@@ -27,7 +27,7 @@ mv -Tf "$base/current.next" "$base/current"
 sudo /usr/bin/systemctl restart glazenhuis-cms glazenhuis-web
 healthy=false
 for attempt in {1..30}; do
- if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then healthy=true; break; fi
+ if curl --fail --silent http://127.0.0.1:3005/api/health >/dev/null; then healthy=true; break; fi
  sleep 2
 done
 if [[ "$healthy" != true ]]; then

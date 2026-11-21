@@ -124,7 +124,7 @@ Vul `shared/cms.env` aan:
 ```dotenv
 NODE_ENV=production
 HOST=127.0.0.1
-PORT=1337
+PORT=3006
 CMS_PUBLIC_URL=https://glazenhuis.weredi.nl/cms
 TRUST_PROXY=true
 DATABASE_HOST=127.0.0.1
@@ -143,11 +143,11 @@ Behoud alle door setup gegenereerde geheimen. Vul `shared/web.env` in:
 
 ```dotenv
 NODE_ENV=production
-CMS_URL=http://127.0.0.1:1337
+CMS_URL=http://127.0.0.1:3006
 SITE_URL=https://glazenhuis.weredi.nl
 CONTENT_MODE=cms
 NEXT_PUBLIC_CMS_URL=
-PORT=3000
+PORT=3005
 HOSTNAME=127.0.0.1
 CMS_ADMIN_URL=/cms/admin
 ```
@@ -206,7 +206,7 @@ systemctl enable glazenhuis-cms glazenhuis-web
 ```
 
 Uploads zijn gedeeld tussen releases. nginx moet leesrechten hebben: bestanden doorgaans `640`, mappen `750`, groep
-`glazenhuis`. `www-data` wordt daarom lid van deze groep. Open uitsluitend SSH, 80 en 443 in de firewall; 3000, 1337 en
+`glazenhuis`. `www-data` wordt daarom lid van deze groep. Open uitsluitend SSH, 80 en 443 in de firewall; 3005, 3006 en
 MariaDB blijven lokaal. Controleer `ss -ltnp`; Next wordt gestart met een expliciet loopbackadres.
 
 ## 5. Controleren en onderhouden

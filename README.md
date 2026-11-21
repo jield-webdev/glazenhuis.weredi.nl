@@ -18,7 +18,7 @@ Vul `apps/cms/.env` in: lokale Docker gebruikt poort `3310`, wachtwoord `local-d
 npm run dev
 ```
 
-Website: http://localhost:3000 · CMS: http://localhost:1337/admin. Maak de eerste beheerder lokaal aan; extra beheerders
+Website: http://localhost:3005 · CMS: http://localhost:3006/admin. Maak de eerste beheerder lokaal aan; extra beheerders
 worden uitsluitend door een bestaande beheerder uitgenodigd. Er is geen publieke gebruikersregistratie of publiek
 uploadformulier.
 
