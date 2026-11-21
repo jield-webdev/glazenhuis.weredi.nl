@@ -238,9 +238,75 @@ Bij problemen:
   verifieer de fingerprint opnieuw. Na vervanging van een server of hostsleutel moet je die opnieuw vertrouwen voordat
   je het secret bijwerkt. Laat `StrictHostKeyChecking=yes` aan; voeg geen automatische scan toe aan de workflow.
 - `Permission denied (publickey)`: controleer `DEPLOY_USER`, de private sleutel in het secret, de bijbehorende public
-  key in `authorized_keys` en de eigenaar en rechten van de `.ssh`-map en bestanden.
+  key in `authorized_keys` en de eigenaar en rechten van de `.ssh`-map en bestanden. Volg de diagnose hieronder.
 - Fouten tijdens `git fetch`: controleer op de server als `glazenhuis` de aparte repositorysleutel, GitHubs hostsleutel
   en `git ls-remote` uit stap 4.
 
 Zie voor de hostcontrole ook de officiële [ssh-keyscan-documentatie](https://man.openbsd.org/ssh-keyscan) en
 [ssh-keygen-documentatie](https://man.openbsd.org/ssh-keygen).
+
+### Diagnose: Permission denied (publickey)
+
+Als de workflow alleen `Permission denied (publickey)` meldt, is de SSH-server bereikt en is de hostcontrole geslaagd,
+maar lukt aanmelden als `DEPLOY_USER` niet. Het deployscript is dan nog niet gestart. De aparte sleutel voor
+server → GitHub wordt pas later gebruikt. De clientmelding alleen vertelt niet waarom de server de login weigert.
+
+1. Vergelijk de sleutelvingerafdrukken. Leid op je eigen computer de public key af van de private Actions-sleutel:
+
+   ```sh
+   ssh-keygen -y -f ~/.ssh/glazenhuis_actions | ssh-keygen -lf - -E sha256
+   ```
+
+   Bekijk via je bestaande beheerverbinding op de server de toegestane sleutels:
+
+   ```sh
+   sudo ssh-keygen -lf /home/glazenhuis/.ssh/authorized_keys -E sha256
+   ```
+
+   De lokale `SHA256:...` moet tussen de servervingerafdrukken staan. Ontbreekt deze, voeg dan de bijbehorende
+   volledige `.pub`-regel toe zoals in stap 2. Controleer dat `DEPLOY_USER` inderdaad `glazenhuis` is. Werk in
+   **Settings → Environments → production → Environment secrets** het secret `DEPLOY_SSH_KEY` bij met de volledige
+   private sleutel van ditzelfde paar als je twijfelt welke sleutel daar is opgeslagen.
+
+2. Herhaal lokaal de login met uitsluitend deze sleutel, zonder je SSH-configuratie of agent te gebruiken:
+
+   ```sh
+   ssh -F /dev/null -vvv -i ~/.ssh/glazenhuis_actions -p "$deploy_port" \
+     -o IdentityAgent=none -o BatchMode=yes -o IdentitiesOnly=yes \
+     -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$PWD/deploy_known_hosts" \
+     "glazenhuis@$deploy_host" 'true'
+   ```
+
+   Gebruik de host, poort en het geverifieerde `deploy_known_hosts` uit stap 3. Dit start geen deployment.
+   `Offering public key` toont welke sleutel wordt aangeboden; `Authenticated to` bevestigt een geslaagde login.
+   Slaagt deze test terwijl Actions faalt, vergelijk dan de secrets met deze lokale waarden. Controleer ook of
+   `from=` in `authorized_keys` of een SSH-`Match`-regel toegang vanaf het IP-adres van de Actions-runner beperkt.
+
+3. Lees op Debian via je beheerverbinding de serverlogs terwijl je de test herhaalt:
+
+   ```sh
+   sudo journalctl -u ssh.service --since '10 minutes ago' --no-pager
+   getent passwd glazenhuis
+   sudo namei -l /home/glazenhuis/.ssh/authorized_keys
+   ```
+
+   De logs kunnen bijvoorbeeld een onbekende gebruiker, onjuiste bestandsrechten, een geblokkeerde account of een
+   weigering door `AllowUsers`/`AllowGroups` aanwijzen. Gebruik de thuismap uit `getent` als die afwijkt van
+   `/home/glazenhuis`. De thuismap mag niet schrijfbaar zijn voor groep of anderen; `.ssh` hoort van `glazenhuis`
+   te zijn met modus `700`, en `authorized_keys` met modus `600`. Herstel deze rechten indien nodig:
+
+   ```sh
+   sudo chmod go-w /home/glazenhuis
+   sudo chown glazenhuis:glazenhuis /home/glazenhuis/.ssh /home/glazenhuis/.ssh/authorized_keys
+   sudo chmod 700 /home/glazenhuis/.ssh
+   sudo chmod 600 /home/glazenhuis/.ssh/authorized_keys
+   ```
+
+   Als sleutels en rechten kloppen, laat de beheerder de effectieve SSH-configuratie voor deze gebruiker en het
+   client-IP controleren met `sshd -T -C user=glazenhuis,addr=YOUR_CLIENT_IP,host=YOUR_CLIENT_HOSTNAME`.
+   Controleer daarin `PubkeyAuthentication`, `AuthorizedKeysFile`, `AuthenticationMethods`, toegangsregels en
+   eventuele `Match`-blokken. Gebruik bij een Actions-fout het runner-IP uit de serverlogs. Pas de configuratie
+   alleen aan op basis van de concrete weigering; zet hostcontrole en sleutelrestricties niet uit.
+
+Zie ook de officiële documentatie voor [authorized_keys en bestandsrechten](https://man.openbsd.org/sshd#AUTHORIZED_KEYS_FILE_FORMAT)
+en [sshd_config](https://man.openbsd.org/sshd_config).
