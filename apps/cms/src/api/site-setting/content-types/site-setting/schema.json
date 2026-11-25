@@ -41,10 +41,8 @@
       "default": 0
     },
     "actionUrl": {
-      "type": "string"
-    },
-    "seriousRequestUrl": {
-      "type": "string"
+      "type": "string",
+      "default": "https://inzamelen.alsacties.nl/fundraisers/scholengemeenschap-were-di?locale=nl"
     },
     "contactEmail": {
       "type": "email"

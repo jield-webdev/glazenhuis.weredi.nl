@@ -1,16 +1,16 @@
 {
   "settings": {
     "siteTitle": "Glazen Huis Were Di",
-    "description": "Were Di komt samen 24 uur in actie voor 3FM Serious Request. Ontdek onze acties, het laatste nieuws en de foto’s.",
+    "description": "Were Di komt samen 24 uur in actie voor ALS. Ontdek onze acties, het laatste nieuws en de foto’s.",
     "dateNote": "De datum maken we binnenkort bekend.",
     "location": "Were Di · Valkenswaard",
     "targetAmount": 0,
     "additionalAmount": 0,
-    "seriousRequestUrl": "https://www.npo3fm.nl/thema/serious-request",
+    "actionUrl": "https://inzamelen.alsacties.nl/fundraisers/scholengemeenschap-were-di?locale=nl",
     "heroTitle": "Samen maken\nwe het verschil.",
-    "heroIntro": "24 uur. Eén Glazen Huis. Heel Were Di in actie voor 3FM Serious Request. Doe mee, volg de verhalen en steun het goede doel.",
+    "heroIntro": "24 uur. Eén Glazen Huis. Heel Were Di in actie voor ALS. Doe mee, volg de verhalen en steun het goede doel.",
     "heroImageAlt": "Sfeerbeeld van de campus van Were Di",
-    "footerText": "Samen in actie voor 3FM Serious Request.",
+    "footerText": "Samen in actie voor ALS.",
     "labels": {
       "home": "Home",
       "news": "Nieuws",
@@ -19,7 +19,7 @@
       "about": "Over het Glazen Huis",
       "donate": "Steun onze actie",
       "datePending": "Datum volgt binnenkort",
-      "campaign": "Were Di voor 3FM Serious Request",
+      "campaign": "Were Di voor ALS",
       "raised": "Samen opgehaald",
       "target": "Ons streefbedrag",
       "targetPending": "Het streefbedrag volgt binnenkort",
@@ -36,9 +36,9 @@
       "contactBody": "Wil je iets organiseren, helpen of meer weten? Neem contact op met de organisatie.",
       "contactButton": "Neem contact op",
       "aboutHeading": "24 uur samen in actie",
-      "aboutBody": "Een Glazen Huis op onze eigen school. Leerlingen en medewerkers van Were Di zetten zich samen 24 uur lang in voor 3FM Serious Request. Met acties, muziek en de energie van onze school maken we er iets bijzonders van.",
+      "aboutBody": "Een Glazen Huis op onze eigen school. Leerlingen en medewerkers van Were Di zetten zich samen 24 uur lang in voor ALS. Met acties, muziek en de energie van onze school maken we er iets bijzonders van.",
       "aboutLink": "Meer over het Glazen Huis",
-      "srLabel": "Over 3FM Serious Request",
+      "fundraiserLink": "Bekijk onze ALS-inzamelpagina",
       "readMore": "Lees het bericht",
       "actionAmount": "Opgehaald met deze actie",
       "back": "Terug naar het overzicht",
@@ -82,8 +82,8 @@
     {
       "title": "Een Glazen Huis bij Were Di",
       "slug": "over-het-glazen-huis",
-      "intro": "24 uur samen in actie voor 3FM Serious Request.",
-      "body": "## Onze school, ons Glazen Huis\nLeerlingen en medewerkers van Scholengemeenschap Were Di in Valkenswaard zetten zich 24 uur lang in voor 3FM Serious Request. Het Glazen Huis wordt een plek voor muziek, ontmoeting en acties voor het goede doel.\n\n## Wanneer?\nDe datum en het programma worden later bekendgemaakt. Houd deze website in de gaten.\n\n## Doe mee\nBedenk een actie met je klas, team of vrienden. Neem contact op met de organisatie om je idee te bespreken. Zodra onze persoonlijke actiepagina beschikbaar is, vind je de link op deze website."
+      "intro": "24 uur samen in actie voor ALS.",
+      "body": "## Onze school, ons Glazen Huis\nLeerlingen en medewerkers van Scholengemeenschap Were Di in Valkenswaard zetten zich 24 uur lang in voor ALS. Het Glazen Huis wordt een plek voor muziek, ontmoeting en acties voor het goede doel.\n\n## Wanneer?\nDe datum en het programma worden later bekendgemaakt. Houd deze website in de gaten.\n\n## Doe mee\nBedenk een actie met je klas, team of vrienden. Neem contact op met de organisatie om je idee te bespreken. Doneer via [onze ALS-inzamelpagina](https://inzamelen.alsacties.nl/fundraisers/scholengemeenschap-were-di?locale=nl). Daar zie je de opbrengst van onze inzamelpagina, exclusief de overige acties."
     },
     {
       "title": "Privacy",

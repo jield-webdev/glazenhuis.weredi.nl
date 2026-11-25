@@ -8,7 +8,7 @@ Open `https://glazenhuis.weredi.nl/cms/admin`. Kies Nederlands als interfacetaal
 
 1. Open **Evenementinstellingen** en vul teksten, contactadres en eventuele datum in. Laat de datum leeg zolang deze onbekend is.
 2. Stel `targetAmount` in zodra het streefbedrag bekend is. Nul toont een melding in plaats van een verzonnen doel.
-3. Vul `actionUrl` pas in zodra de persoonlijke actiepagina beschikbaar is. Alleen een volledig HTTPS-adres wordt als donatielink gebruikt. De website ontvangt zelf geen betalingen.
+3. Het veld **ALS-inzamelpagina** (`actionUrl`) bevat standaard `https://inzamelen.alsacties.nl/fundraisers/scholengemeenschap-were-di?locale=nl` en bepaalt de donatieknoppen en de link in de footer. Alleen een volledig HTTPS-adres wordt als donatielink gebruikt. De website ontvangt zelf geen betalingen.
 4. De `labels`-velden wijzigen navigatie, knoppen, lege toestanden en sectieteksten. Behoud de bestaande sleutels. De technische foutmeldingen blijven onderdeel van de applicatie.
 5. Sla op en publiceer. Wijzigingen verschijnen binnen circa 30 seconden.
 
@@ -20,7 +20,7 @@ Maak nieuws met titel, unieke slug, datum, introductie, tekst en eventueel een a
 
 ## Acties en thermometer
 
-Een actie bevat titel, slug, afbeelding, introductie, omschrijving en `amount` in euro’s. De thermometer telt de bedragen van **gepubliceerde** acties en `additionalAmount` op. Gebruik dat laatste uitsluitend voor opbrengsten die niet al in een actie staan. Het bedrag kan boven het doel uitkomen; de balk stopt bij 100%. Er is geen automatische 3FM-koppeling. Trek je een actie in, dan verdwijnt die ook uit het totaal.
+Een actie bevat titel, slug, afbeelding, introductie, omschrijving en `amount` in euro’s. De thermometer telt de bedragen van **gepubliceerde** acties en `additionalAmount` op. Gebruik dat laatste uitsluitend voor opbrengsten die niet al in een actie staan. Het bedrag kan boven het doel uitkomen; de balk stopt bij 100%. Er is geen automatische koppeling met de ALS-inzamelpagina. Trek je een actie in, dan verdwijnt die ook uit het totaal.
 
 ## Foto’s uploaden en bekijken
 
@@ -31,3 +31,7 @@ Publiceer alleen foto’s waarvoor toestemming is geregeld. Zet geen persoonsgeg
 ## Voor de lancering
 
 Controleer de contactgegevens, privacytekst, toestemming voor beeldgebruik, donatielink, datum en rollen. Verstuur een testmail in de e-mailinstellingen. Controleer ook de mobiele website en een gepubliceerd nieuwsbericht, actie en fotoalbum.
+
+## Bestaande beginteksten bijwerken
+
+Bij de eerste CMS-start na deze update worden verouderde campagneverwijzingen in bestaande teksten vervangen door ALS en wordt een ontbrekende donatielink ingevuld. Concepten en gepubliceerde versies worden afzonderlijk bijgewerkt; andere redactionele wijzigingen blijven behouden. De opbrengst op de externe inzamelpagina is exclusief de overige acties en wordt niet automatisch ingelezen.

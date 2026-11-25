@@ -34,11 +34,10 @@ npm run build
 
 ## Beheerbare inhoud
 
-Evenementinstellingen: datum en eindtijd (optioneel), locatie, titel en introductie, foto, contactadres, persoonlijke
-3FM-actielink, algemeen Serious Request-adres, streefbedrag en overige opbrengsten. `labels` bevat de Nederlandse
+Evenementinstellingen: datum en eindtijd (optioneel), locatie, titel en introductie, foto, contactadres, de ALS-inzamelpagina, streefbedrag en overige opbrengsten. `labels` bevat de Nederlandse
 navigatie, knoppen en sectieteksten. Pagina’s bevatten de introducties, hoofdtekst en SEO-velden. Nieuws, acties en
 fotoalbums hebben afzonderlijke collecties, concepten en publiceren. Opbrengsten zijn handmatige administratie; deze
-website verwerkt geen betalingen en synchroniseert niet automatisch met 3FM.
+website verwerkt geen betalingen en synchroniseert niet automatisch met de ALS-inzamelpagina.
 
 [Beheerhandleiding](docs/editor.md) · [Debian Trixie en nginx](docs/deployment.md) · [GitHub Actions](docs/github-actions.md)
 
@@ -54,9 +53,7 @@ vermelding door chatdiensten.
 
 Logo en campusbeeld afkomstig van https://weredi.nl/ (homepagebeeld `DSC6388-scaled.jpg`). Dit is schoolbeeld, geen foto
 van het nog te organiseren evenement. Fonts Montserrat en Titillium Web volgen de officiële schoolsite en worden lokaal
-geleverd via Fontsource. Bevestig intern het hergebruik van het beeld vóór publicatie. De Serious Request-link verwijst
-naar https://www.npo3fm.nl/thema/serious-request; er wordt geen editie of goed doel vastgezet zolang het evenement nog
-niet is gepland.
+geleverd via Fontsource. Bevestig intern het hergebruik van het beeld vóór publicatie. De donatieknoppen en footer verwijzen naar [onze ALS-inzamelpagina](https://inzamelen.alsacties.nl/fundraisers/scholengemeenschap-were-di?locale=nl); deze link is via `actionUrl` in het CMS te wijzigen.
 
 ## Verificatie en open punten
 

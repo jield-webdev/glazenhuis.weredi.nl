@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 declare const strapi: Core.Strapi;
 const fields = {
- 'site-setting': ['siteTitle','description','eventDate','eventEnd','dateNote','location','targetAmount','additionalAmount','actionUrl','seriousRequestUrl','contactEmail','heroTitle','heroIntro','heroImageAlt','footerText','labels','updatedAt'],
+ 'site-setting': ['siteTitle','description','eventDate','eventEnd','dateNote','location','targetAmount','additionalAmount','actionUrl','contactEmail','heroTitle','heroIntro','heroImageAlt','footerText','labels','updatedAt'],
  page: ['title','slug','intro','body','seoTitle','seoDescription','updatedAt'],
  news: ['title','slug','intro','body','seoTitle','seoDescription','imageAlt','date','updatedAt'],
  action: ['title','slug','intro','body','seoTitle','seoDescription','imageAlt','amount','updatedAt'],

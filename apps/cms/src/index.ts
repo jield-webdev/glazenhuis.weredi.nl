@@ -1,8 +1,9 @@
 import seed from './seed-data.json';
+import { migrateCampaign } from './migrations/als-campaign';
 export default { async bootstrap({ strapi }) {
  // Translate content editor field labels without changing English API names.
  const manager = strapi.plugin('content-manager').service('content-types');
- const labels = { title: 'Titel', slug: 'Webadres', intro: 'Introductie', body: 'Tekst', seoTitle: 'SEO-titel', seoDescription: 'SEO-beschrijving', image: 'Afbeelding', imageAlt: 'Alternatieve tekst', date: 'Datum', amount: 'Opbrengst in euro’s', photos: 'Foto’s', siteTitle: 'Websitetitel', description: 'Beschrijving', eventDate: 'Begindatum en tijd', eventEnd: 'Einddatum en tijd', dateNote: 'Toelichting bij datum', location: 'Locatie', targetAmount: 'Streefbedrag in euro’s', additionalAmount: 'Overige opbrengsten in euro’s', actionUrl: 'Persoonlijke 3FM-actielink', seriousRequestUrl: 'Serious Request-link', contactEmail: 'Contactadres', heroTitle: 'Titel op voorpagina', heroIntro: 'Introductie op voorpagina', heroImage: 'Foto op voorpagina', heroImageAlt: 'Alternatieve tekst voorpaginafoto', footerText: 'Voettekst', labels: 'Nederlandse interface- en sectieteksten' };
+ const labels = { title: 'Titel', slug: 'Webadres', intro: 'Introductie', body: 'Tekst', seoTitle: 'SEO-titel', seoDescription: 'SEO-beschrijving', image: 'Afbeelding', imageAlt: 'Alternatieve tekst', date: 'Datum', amount: 'Opbrengst in euro’s', photos: 'Foto’s', siteTitle: 'Websitetitel', description: 'Beschrijving', eventDate: 'Begindatum en tijd', eventEnd: 'Einddatum en tijd', dateNote: 'Toelichting bij datum', location: 'Locatie', targetAmount: 'Streefbedrag in euro’s', additionalAmount: 'Overige opbrengsten in euro’s', actionUrl: 'ALS-inzamelpagina', contactEmail: 'Contactadres', heroTitle: 'Titel op voorpagina', heroIntro: 'Introductie op voorpagina', heroImage: 'Foto op voorpagina', heroImageAlt: 'Alternatieve tekst voorpaginafoto', footerText: 'Voettekst', labels: 'Nederlandse interface- en sectieteksten' };
  for (const name of ['page','news','action','album','site-setting']) {
   const model = strapi.contentTypes[`api::${name}.${name}`];
   const configuration = await manager.findConfiguration(model);
@@ -12,6 +13,7 @@ export default { async bootstrap({ strapi }) {
   }
   await manager.updateConfiguration(model, configuration);
  }
+ await migrateCampaign(strapi);
  // Seed only once, explicitly. Never republish or overwrite editorial changes.
  if (process.env.SEED_CONTENT !== 'true') return;
  const store = strapi.store({ type: 'core', name: 'weredi' });
