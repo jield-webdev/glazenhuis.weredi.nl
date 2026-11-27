@@ -39,7 +39,7 @@ navigatie, knoppen en sectieteksten. Pagina’s bevatten de introducties, hoofdt
 fotoalbums hebben afzonderlijke collecties, concepten en publiceren. Opbrengsten zijn handmatige administratie; deze
 website verwerkt geen betalingen en synchroniseert niet automatisch met de ALS-inzamelpagina.
 
-[Beheerhandleiding](docs/editor.md) · [Debian Trixie en nginx](docs/deployment.md) · [GitHub Actions](docs/github-actions.md)
+[Beheerhandleiding](docs/editor.md) · [Azure App Service](docs/deployment.md) · [GitHub Actions](docs/github-actions.md)
 
 ## SEO en leesbaarheid voor agents
 
@@ -61,8 +61,7 @@ De unitcontroles en productiebuilds zijn uitgevoerd. De integratietest controlee
 uploadrechten, fotoalbums en de server-gerenderde routes tegen MariaDB. Run:
 `INTEGRATION_TEST=true npm run test:integration` na een build, uitsluitend met een testdatabase.
 Zie [dependency-advisories](docs/security.md) voor de resterende upstreammeldingen die vóór publieke ingebruikname
-beoordeeld moeten worden. Mailjet en de echte Debian-deployment zijn zonder accountsleutels en servertoegang niet live
-getest.
+beoordeeld moeten worden. De website en het CMS worden als afzonderlijke Azure App Services gedeployd; zie de deploymenthandleiding voor verificatie en beheer. Mailjet vereist eigen accountsleutels.
 
 ## Azure MySQL
 
@@ -70,5 +69,12 @@ Azure Database for MySQL Flexible Server wordt ondersteund met minimaal TLS 1.2,
 hostnaamcontrole. De benodigde rootcertificaten zijn meegeleverd. Stel `DATABASE_HOST`, `DATABASE_USERNAME`,
 `DATABASE_PASSWORD` en `DATABASE_SSL=true` in bij het CMS. `DATABASE_SSL_CA_FILE` is optioneel voor een eigen
 PEM-bundel. Controleer de verbinding met `npm run db:check`. Volg
-de [Azure-installatiestappen](docs/deployment.md#azure-database-for-mysql-flexible-server) voor netwerktoegang,
+de [Azure-installatiestappen](docs/deployment.md#database) voor netwerktoegang,
 certificaten en de volledige configuratie.
+
+## Client en server op Azure
+
+`apps/web` is de Next.js-website en `apps/cms` is de Strapi-server. Beide zijn npm-workspaces met één root-lockfile.
+De twee Linux Node.js 26 App Services gebruiken het bestaande `jield-plan` in resourcegroep `jield-production`.
+GitHub Actions bouwt Linux ZIP-pakketten en deployt via OIDC: eerst Strapi, daarna de website.
+Uploads staan op een eigen Azure Files-share, buiten de release. Zie [deployment](docs/deployment.md).

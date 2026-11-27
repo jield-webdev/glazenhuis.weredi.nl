@@ -1,4 +1,4 @@
-name: Test and deploy
+name: Test and deploy to Azure
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  group: azure-production-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
   cancel-in-progress: false
 
 jobs:
@@ -28,14 +28,26 @@ jobs:
       - run: npm ci --include=dev
       - run: npm test
       - run: npm run typecheck
-      - run: npm run build
+      - name: Build Azure packages
+        run: npm run build
         env:
-          CONTENT_MODE: demo
+          CMS_PUBLIC_URL: ${{ vars.AZURE_CMS_PUBLIC_URL }}
+          SITE_URL: ${{ vars.AZURE_SITE_URL }}
+          CONTENT_MODE: cms
           APP_KEYS: ci-build-only-1,ci-build-only-2
           ADMIN_JWT_SECRET: ci-build-only-secret
           API_TOKEN_SALT: ci-build-only-salt
           TRANSFER_TOKEN_SALT: ci-build-only-transfer
           ENCRYPTION_KEY: ci-build-only-encryption
+
+      - name: Package both services with Linux runtime dependencies
+        run: bash deploy/azure/package.sh "$RUNNER_TEMP/azure-packages"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: azure-packages
+          path: ${{ runner.temp }}/azure-packages/*.zip
+          if-no-files-found: error
+          retention-days: 7
 
   verify-cms:
     runs-on: ubuntu-latest
@@ -81,41 +93,50 @@ jobs:
 
   deploy:
     needs: [ verify, verify-cms ]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AZURE_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: production
+    timeout-minutes: 30
+    environment: azure-production
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Deploy tested commit over SSH
+      - uses: actions/download-artifact@v4
+        with:
+          name: azure-packages
+          path: packages
+      - name: Check deployment configuration
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          DEPLOY_SHA: ${{ github.sha }}
-        shell: bash
+          WEB_APP: ${{ vars.AZURE_WEBAPP_NAME }}
+          CMS_APP: ${{ vars.AZURE_CMS_APP_NAME }}
         run: |
-          set -euo pipefail
-          : "${DEPLOY_HOST:?Missing DEPLOY_HOST}"
-          : "${DEPLOY_USER:?Missing DEPLOY_USER}"
-          : "${DEPLOY_SSH_KEY:?Missing DEPLOY_SSH_KEY}"
-          : "${DEPLOY_KNOWN_HOSTS:?Missing DEPLOY_KNOWN_HOSTS}"
-          ssh_dir=$(mktemp -d)
-          trap 'rm -rf "$ssh_dir"' EXIT
-          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
-          chmod 600 "$ssh_dir/key"
-          deploy_port=${DEPLOY_PORT:-22}
-          known_host=$DEPLOY_HOST
-          if [[ "$deploy_port" != 22 ]]; then
-            known_host="[$DEPLOY_HOST]:$deploy_port"
-          fi
-          if ! ssh-keygen -F "$known_host" -f "$ssh_dir/known_hosts" > /dev/null; then
-            echo '::error::DEPLOY_KNOWN_HOSTS has no entry for DEPLOY_HOST and DEPLOY_PORT. Use the exact hostname/IP; non-default ports require [host]:port. See docs/github-actions.md.'
-            exit 1
-          fi
-          ssh -i "$ssh_dir/key" -p "$deploy_port" \
-            -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
-            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" "/usr/local/bin/glazenhuis-deploy $DEPLOY_SHA"
+          : "${WEB_APP:?Set AZURE_WEBAPP_NAME in azure-production}"
+          : "${CMS_APP:?Set AZURE_CMS_APP_NAME in azure-production}"
+          test "$WEB_APP" != "$CMS_APP"
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy CMS
+        id: cms
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_CMS_APP_NAME }}
+          package: packages/cms.zip
+          startup-command: bash /home/site/wwwroot/start.sh
+      - name: Check CMS readiness
+        env:
+          APP_URL: ${{ steps.cms.outputs.webapp-url }}
+        run: curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 5 --max-time 15 "${APP_URL%/}/_health"
+      - name: Deploy website
+        id: web
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: packages/web.zip
+          startup-command: bash /home/site/wwwroot/start.sh
+      - name: Check website and CMS connectivity
+        env:
+          APP_URL: ${{ steps.web.outputs.webapp-url }}
+        run: curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 5 --max-time 15 "${APP_URL%/}/api/health"

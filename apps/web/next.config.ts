@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 function buildHash() {
@@ -7,7 +8,7 @@ function buildHash() {
  catch { return 'unknown'; }
 }
 
-const config: NextConfig = { poweredByHeader: false, env: {
+const config: NextConfig = { output: 'standalone', outputFileTracingRoot: resolve(__dirname, '../..'), poweredByHeader: false, env: {
  BUILD_HASH: buildHash(),
  BUILD_DATE: new Date().toISOString(),
 }, async headers() { return [{ source: '/:path*', headers: [
