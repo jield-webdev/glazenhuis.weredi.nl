@@ -1,226 +1,112 @@
-# Installatie op Debian 13 Trixie met nginx
+# Azure App Service
 
-Deze applicatie draait als twee Node-processen achter nginx en gebruikt MariaDB of Azure Database for MySQL Flexible
-Server. Publicatie op de echte server vereist DNS, SSH-toegang, repository-URL en Mailjet-sleutels. Die worden niet
-meegeleverd.
+De deployment volgt Jield Website: een aparte client en server op hetzelfde Linux App Service-plan,
+Linux-builds in GitHub Actions, ZIP-deployment met OIDC en persistente Azure Files-uploads.
 
-## 1. Besturingssysteem en runtime
+| Onderdeel | Azure-resource |
+| --- | --- |
+| Resourcegroep | `jield-production` |
+| Bestaand plan | `jield-plan` (West Europe, P0v4) |
+| Website (`apps/web`, Next.js) | `glazenhuis-weredi-web` |
+| CMS (`apps/cms`, Strapi) | `glazenhuis-weredi-cms` |
+| Uploads | `jieldcms1304920634` / share `glazenhuis-uploads` |
+| CMS-mount | `/mounts/glazenhuis-uploads` |
+| Deployidentity | `glazenhuis-github-deploy` |
 
-Installeer updates en pakketten als root:
+Website: https://glazenhuis-weredi-web.azurewebsites.net
+CMS: https://glazenhuis-weredi-cms.azurewebsites.net/admin
 
-```sh
-apt update
-apt install nginx git curl ca-certificates certbot python3-certbot-nginx sudo build-essential python3 pkg-config
-# Alleen bij een lokale database:
-apt install mariadb-server
+## Structuur en builds
+
+Beide apps blijven npm-workspaces; installeer vanuit de root met `npm ci`. Er zijn geen afzonderlijke lockfiles.
+De website gebruikt Next.js standalone output met de repository als tracingroot. Het CMS-pakket behoudt de
+rootdependencies en eventuele eigen `apps/cms/node_modules`, zodat Strapi en React 18 correct worden gevonden.
+
+```bash
+npm ci --include=dev
+npm test
+npm run typecheck
+CMS_PUBLIC_URL=https://glazenhuis-weredi-cms.azurewebsites.net \
+SITE_URL=https://glazenhuis-weredi-web.azurewebsites.net CONTENT_MODE=cms npm run build
+bash deploy/azure/package.sh /tmp/glazenhuis-packages
 ```
 
-Installeer Node.js 26 en npm 11 vanuit een door jouw organisatie vertrouwde pakketbron. Controleer de officiële
-Node-downloads, verifieer de checksum en plaats `node` en `npm` in `/usr/bin` of pas de systemd-units aan de werkelijke
-paden aan. Debian Trixie levert mogelijk een oudere Node-versie dan deze applicatie vereist.
+Maak deploymentpakketten op **Linux x64 met Node 26**, vanwege native dependencies. De startupcommand is voor beide
+apps `bash /home/site/wwwroot/start.sh`. Beide luisteren op `0.0.0.0` en de door Azure geleverde `PORT` (standaard 8080).
+De pakketten bevatten geen `.env`-bestanden of CMS-uploads. De website bevat wel zijn publieke assets en `.next/static`.
 
-Maak een ongeprivilegieerde account en mappen:
+## App settings
 
-```sh
-adduser --disabled-password --gecos '' glazenhuis
-install -d -o glazenhuis -g glazenhuis -m 750 /var/lib/glazenhuis
-install -d -o glazenhuis -g glazenhuis -m 750 /var/lib/glazenhuis/releases /var/lib/glazenhuis/shared /var/lib/glazenhuis/shared/uploads
+Beide apps gebruiken `NODE_ENV=production`, `SCM_DO_BUILD_DURING_DEPLOYMENT=false`, `ENABLE_ORYX_BUILD=false` en
+`WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`. Laat `WEBSITE_RUN_FROM_PACKAGE` weg: Strapi maakt bij opstarten een symlink
+in de uitgepakte deploymentdirectory. HTTPS, Always On en TLS 1.2 zijn ingeschakeld.
+
+Website:
+
+| Setting | Waarde |
+| --- | --- |
+| `CONTENT_MODE` | `cms` |
+| `CMS_URL`, `CMS_PUBLIC_URL` | `https://glazenhuis-weredi-cms.azurewebsites.net` |
+| `CMS_ADMIN_URL` | `https://glazenhuis-weredi-cms.azurewebsites.net/admin` |
+| `SITE_URL` | `https://glazenhuis-weredi-web.azurewebsites.net` |
+
+`CMS_PUBLIC_URL` wordt op de server gebruikt voor afbeeldings-URL's. Hiervoor zijn geen publieke buildsecrets nodig.
+De browser leest de website; de website leest gepubliceerde inhoud via HTTPS uit Strapi.
+
+CMS: `HOST=0.0.0.0`, `TRUST_PROXY=true`, `CMS_PUBLIC_URL` zoals boven, `STRAPI_TELEMETRY_DISABLED=true`,
+`CMS_UPLOADS_PATH=/mounts/glazenhuis-uploads`, `SEED_CONTENT=false`, plus de databasevelden en blijvende
+`APP_KEYS`, `ADMIN_JWT_SECRET`, `API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT` en `ENCRYPTION_KEY`.
+Bewaar de sleutels in Azure App settings en behoud ze bij nieuwe releases.
+Mailjet vereist `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, `SMTP_FROM` en `SMTP_REPLY_TO` in de CMS-app.
+
+De productiemiddleware behoudt de oude nginx-regel die publieke eerste-beheerderregistratie blokkeert.
+Bestaande beheerders kunnen inloggen en uitnodigingen blijven werken. Maak een eventuele eerste beheerder via de
+Strapi CLI (`npm run strapi -- admin:create-user --help` vanuit `apps/cms`) in een afgeschermde Azure-console.
+Het CMS stuurt in productie ook `X-Robots-Tag: noindex, nofollow`.
+
+## Database
+
+De bestaande database `glazenhuis` op `jield-poduction.mysql.database.azure.com` wordt gebruikt.
+De CMS-app heeft VNet-integratie met `jield-production-vnet`, subnet `cms-appservice`;
+de MySQL-server blijft privé. De gebruiker `glazenhuis_app` krijgt alleen rechten op `glazenhuis.*`.
+Stel `DATABASE_PORT=3306`, `DATABASE_SSL=true` en `DATABASE_SSL_CA_FILE=certs/azure-mysql-ca.pem` in.
+De meegeleverde CA-bundel controleert certificaatketen én hostnaam; gebruik de volledige Azure DNS-naam.
+Zie ook [de certificaatdocumentatie](../apps/cms/certs/README.md).
+
+Bewaar databasecredentials uitsluitend in de CMS-app. Maak vóór releases een databaseherstelpunt.
+Een rollback van code draait schemawijzigingen niet terug. CI gebruikt uitsluitend een wegwerp-MariaDB-database.
+
+## Uploads en migratie
+
+Het startupscript controleert dat de Azure Files-share echt gemount en schrijfbaar is en koppelt
+`apps/cms/public/uploads` hieraan. Zonder mount stopt het CMS. Een bestaande, niet-lege uploaddirectory wordt
+behouden en blokkeert opstarten totdat de bestanden zijn gemigreerd.
+
+Kopieer vóór omschakeling alle bestaande uploads, inclusief thumbnails en varianten, naar de **root** van de share.
+Behoud bestandsnamen en controleer de media-URL's uit de bestaande database. Gebruik Azure Storage Explorer of
+`az storage file upload-batch`. Kopieer niet de enclosing map `uploads`. Houd de oorspronkelijke bestanden aan tot
+uploaden, ophalen en opnieuw deployen zijn getest. Deel deze share niet met Jield of testomgevingen.
+Configureer een afzonderlijke Azure Files-backup; mounts vallen buiten App Service-backups.
+Zie [Microsofts storage-mountdocumentatie](https://learn.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage).
+
+## Publiceren en herstellen
+
+De [workflow](../.github/workflows/deploy.yml) test beide apps, bouwt op Linux en controleert de CMS-integratie.
+Daarna deployt hij op `main` eerst het CMS (`/_health`) en vervolgens de website (`/api/health`, inclusief CMS-read).
+Handmatig deployen van dezelfde Linux-pakketten:
+
+```bash
+az webapp deploy -g jield-production -n glazenhuis-weredi-cms --src-path /tmp/glazenhuis-packages/cms.zip --type zip
+az webapp deploy -g jield-production -n glazenhuis-weredi-web --src-path /tmp/glazenhuis-packages/web.zip --type zip
 ```
 
-De SSH-deploygebruiker is `glazenhuis`. Geef deze account een eigen deploysleutel voor alleen-lezen toegang tot de
-GitHub-repository. Gebruik geen persoonlijke SSH-sleutel. Voeg de geverifieerde GitHub-hostsleutel toe aan diens
-`known_hosts`.
+Controleer de homepage, `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/api/health`, CMS-login en een gepubliceerde foto.
+Voor rollback: deploy de ZIPs van een eerdere geslaagde run en herstel indien nodig de database en uploads uit
+hetzelfde herstelpunt. Workflowartifacts blijven zeven dagen bewaard.
 
-## 2. Database
+Voor het publieke domein: voeg `glazenhuis.weredi.nl` toe als custom domain aan de website-app, voer Azure's
+DNS-verificatie uit, wijs DNS naar de Azure-host en activeer een managed TLS-certificaat. Pas daarna `SITE_URL` en
+de repositoryvariable `AZURE_SITE_URL` aan naar `https://glazenhuis.weredi.nl` en bouw opnieuw, ook voor robots/SEO.
 
-Voor een lokale database: open `mariadb` als root en voer uit met een eigen sterk wachtwoord:
-
-```sql
-CREATE
-DATABASE glazenhuis CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE
-USER 'glazenhuis'@'127.0.0.1' IDENTIFIED BY 'REPLACE_WITH_RANDOM_PASSWORD';
-GRANT ALL PRIVILEGES ON glazenhuis.* TO
-'glazenhuis'@'127.0.0.1';
-```
-
-Laat MariaDB alleen lokaal luisteren. De databasegebruiker heeft schemawijzigingsrechten nodig voor Strapi-migraties.
-
-### Azure Database for MySQL Flexible Server
-
-Gebruik je Azure, dan hoef je geen lokale MariaDB-server te installeren of bovenstaande lokale SQL uit te voeren. Maak
-op Azure een lege database `glazenhuis` met tekenset `utf8mb4` en een eigen databasegebruiker die tabellen mag aanmaken,
-wijzigen en verwijderen binnen die database. De applicatie gebruikt MySQL-gebruikersnaam/wachtwoord; Microsoft
-Entra-tokenauthenticatie is niet geïmplementeerd.
-
-Vervang in `/var/lib/glazenhuis/shared/cms.env` de databasevelden door:
-
-```dotenv
-DATABASE_HOST=YOUR_SERVER.mysql.database.azure.com
-DATABASE_PORT=3306
-DATABASE_NAME=glazenhuis
-DATABASE_USERNAME=YOUR_DATABASE_USER
-DATABASE_PASSWORD=YOUR_DATABASE_PASSWORD
-DATABASE_SSL=true
-DATABASE_SSL_CA_FILE=
-```
-
-Gebruik de volledige Azure-servernaam, ook wanneer deze via een private endpoint wordt ontsloten. Vervang de hostnaam
-niet door een IP-adres: het TLS-certificaat wordt tegen deze naam gecontroleerd. Stel de gebruikersnaam in zoals
-aangemaakt op Flexible Server; voeg geen `@server` toe tenzij dat echt deel uitmaakt van de aangemaakte gebruikersnaam.
-
-Het CMS levert de twee roots **DigiCert Global Root G2** en **Microsoft RSA Root Certificate Authority 2017** mee. Ze
-volgen de [huidige Microsoft TLS-richtlijn](https://learn.microsoft.com/en-us/azure/mysql/security/security-tls). De
-bundel wordt vanuit `apps/cms/certs/azure-mysql-ca.pem` geladen en zit automatisch in iedere release; er is geen
-download tijdens het opstarten nodig. TLS vereist minimaal versie 1.2 en controleert zowel de certificaatketen als de
-servernaam. Een Azure-host met `DATABASE_SSL=false` wordt geweigerd. Als `DATABASE_SSL` geheel ontbreekt, wordt TLS bij
-Azure-hostnamen automatisch aangezet. De lokale voorbeeldconfiguratie bevat expliciet `false`; verander dit dus in
-`true` voor Azure.
-
-Voor een eigen vertrouwde bundel kun je bijvoorbeeld
-`DATABASE_SSL_CA_FILE=/var/lib/glazenhuis/shared/azure-mysql-ca.pem`
-instellen. Dit bestand moet leesbaar zijn voor `glazenhuis`. Een relatief pad is relatief aan `apps/cms`, niet aan de
-repositoryroot. Ontbrekende, ongeldige of verlopen CA-certificaten stoppen de configuratie voordat een verbinding wordt
-gemaakt. Er is geen optie om certificaat- of hostnaamcontrole uit te zetten. Bij generieke MySQL-hostnamen met TLS maar
-zonder eigen bundel wordt de Node.js-truststore gebruikt.
-
-Houd `require_secure_transport=ON` op Azure aan. Geef de Debian-server toegang via de Azure-firewall voor zijn vaste
-uitgaande IP-adres, of zorg voor private routing en private DNS. Sta uitgaand TCP 3306 toe op Debian. Open Azure MySQL
-niet voor alle IP-adressen.
-
-Controleer na het instellen van de environmentbestanden de verbinding vanuit een release:
-
-```sh
-cd /var/lib/glazenhuis/current
-npm run db:check
-```
-
-De controle gebruikt dezelfde configuratie als Strapi, maakt uitsluitend een verbinding en leest de TLS-sessiegegevens.
-Hij maakt geen tabellen of records aan en toont geen wachtwoord. Bij Azure is de controle pas geslaagd als certificaat-
-en hostnaamcontrole slagen en de sessie een TLS-cipher meldt. Zonder Azure-server en credentials kun je de config en
-certificaatbundel testen met `npm test`; dat is geen live Azure-verbindingstest.
-
-Dezelfde instelling werkt lokaal via `apps/cms/.env`. Bij een nieuwe server zonder eerste release kun je de controle
-vanuit `/var/lib/glazenhuis/repository` uitvoeren nadat `apps/cms/.env` naar de juiste instellingen verwijst. Stel voor
-Azure een backup- en herstelbeleid in en maak vóór releases een herstelpunt, omdat Strapi schemawijzigingen kan
-uitvoeren.
-
-## 3. Eerste release
-
-Als `glazenhuis`:
-
-```sh
-git clone YOUR_REPOSITORY_SSH_URL /var/lib/glazenhuis/repository
-cd /var/lib/glazenhuis/repository
-npm ci
-npm run setup
-cp apps/cms/.env /var/lib/glazenhuis/shared/cms.env
-cp apps/web/.env /var/lib/glazenhuis/shared/web.env
-chmod 600 /var/lib/glazenhuis/shared/*.env
-```
-
-Vul `shared/cms.env` aan:
-
-```dotenv
-NODE_ENV=production
-HOST=127.0.0.1
-PORT=3006
-CMS_PUBLIC_URL=https://glazenhuis.weredi.nl/cms
-TRUST_PROXY=true
-DATABASE_HOST=127.0.0.1
-DATABASE_PORT=3306
-DATABASE_NAME=glazenhuis
-DATABASE_USERNAME=glazenhuis
-DATABASE_PASSWORD=YOUR_DATABASE_PASSWORD
-SEED_CONTENT=true
-MAILJET_API_KEY=YOUR_MAILJET_API_KEY
-MAILJET_SECRET_KEY=YOUR_MAILJET_SECRET_KEY
-SMTP_FROM=noreply@weredi.nl
-SMTP_REPLY_TO=YOUR_ORGANISATION_ADDRESS
-```
-
-Behoud alle door setup gegenereerde geheimen. Vul `shared/web.env` in:
-
-```dotenv
-NODE_ENV=production
-CMS_URL=http://127.0.0.1:3006
-SITE_URL=https://glazenhuis.weredi.nl
-CONTENT_MODE=cms
-NEXT_PUBLIC_CMS_URL=
-PORT=3005
-HOSTNAME=127.0.0.1
-CMS_ADMIN_URL=/cms/admin
-```
-
-Mailjet gebruikt SMTP met verplichte STARTTLS op poort 587. Verifieer het afzenderdomein in Mailjet en voeg hun SPF- en
-DKIM-records toe. Open uitgaand TCP 587. De sleutels komen uitsluitend in het CMS-environmentbestand.
-
-Als root, installeer het deployscript en de units uit deze repository:
-
-```sh
-install -o root -g root -m 755 deploy/deploy.sh /usr/local/bin/glazenhuis-deploy
-cp deploy/glazenhuis-*.service /etc/systemd/system/
-systemctl daemon-reload
-```
-
-Geef met `visudo -f /etc/sudoers.d/glazenhuis` uitsluitend deze bevoegdheid:
-
-```text
-glazenhuis ALL=(root) NOPASSWD: /usr/bin/systemctl restart glazenhuis-cms glazenhuis-web
-```
-
-Voer als deploygebruiker uit met het volledige 40-teken commit-ID op `main`:
-
-```sh
-/usr/local/bin/glazenhuis-deploy FULL_COMMIT_SHA
-```
-
-De eerste start maakt de tabellen en begininhoud aan. Zet daarna `SEED_CONTENT=false` in `shared/cms.env`. De seed is
-ook door een databasevlag beschermd tegen overschrijven.
-
-Maak vóór het publiek openen van nginx een eerste beheerder via Strapi CLI. Controleer de opties met:
-
-```sh
-cd /var/lib/glazenhuis/current/apps/cms
-npm run strapi -- admin:create-user --help
-```
-
-Gebruik de interactieve invoer als de CLI die ondersteunt. Anders voer je de vereiste `--firstname`, `--lastname`,
-`--email` en `--password` alleen in een afgeschermde SSH-sessie in, met shellhistorie uitgeschakeld; het wachtwoord kan
-kort zichtbaar zijn in de lokale proceslijst. Strapi kan hiervoor een tijdelijke service-stop vereisen. Start de
-services daarna opnieuw. Het nginx-bestand blokkeert openbare aanmaak van de eerste beheerder; nieuwe beheerders worden
-later op uitnodiging aangemaakt.
-
-## 4. nginx en TLS
-
-Wijs DNS A/AAAA van `glazenhuis.weredi.nl` naar de server. Installeer de configuratie:
-
-```sh
-cp deploy/nginx.conf /etc/nginx/sites-available/glazenhuis.weredi.nl
-ln -s /etc/nginx/sites-available/glazenhuis.weredi.nl /etc/nginx/sites-enabled/
-usermod -a -G glazenhuis www-data
-nginx -t
-systemctl restart nginx
-certbot --nginx -d glazenhuis.weredi.nl
-systemctl enable glazenhuis-cms glazenhuis-web
-```
-
-Uploads zijn gedeeld tussen releases. nginx moet leesrechten hebben: bestanden doorgaans `640`, mappen `750`, groep
-`glazenhuis`. `www-data` wordt daarom lid van deze groep. Open uitsluitend SSH, 80 en 443 in de firewall; 3005, 3006 en
-MariaDB blijven lokaal. Controleer `ss -ltnp`; Next wordt gestart met een expliciet loopbackadres.
-
-## 5. Controleren en onderhouden
-
-Controleer `/api/health`, `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/cms/admin`, een concept dat onzichtbaar blijft
-en het uploaden/publiceren van een foto. Stel de CMS-profieltaal op Nederlands in. Verstuur een Mailjet-testmail en test
-wachtwoordherstel.
-
-Logs: `journalctl -u glazenhuis-cms -u glazenhuis-web`. Maak dagelijks een versleutelde MariaDB-backup en kopie van
-`shared/uploads` en de environmentbestanden buiten de server. Test herstel. Maak ook vóór iedere release een
-databasebackup: Strapi voert bij opstart schemawijzigingen uit. De code-rollback van het deployscript draait die niet
-terug. Bewaar minstens twee geslaagde releases; verwijder oude releases alleen als ze niet door `current` worden
-gebruikt.
-
-Handmatige rollback: stop beide services, herstel indien nodig de database en uploads uit dezelfde backup, wijs
-`current` naar de vorige release en start beide services. Bij een mislukte eerste deployment zonder vorige release: stop
-de services en herstel de fout vóór herstart.
+De oude SSH-handleidingen zijn uitsluitend archief: [server](legacy-ssh-deployment.md),
+[Actions](legacy-ssh-github-actions.md). De actieve workflow gebruikt Azure en bevat geen SSH-deployment.

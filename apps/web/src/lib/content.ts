@@ -9,4 +9,4 @@ export const getSite = cache(async (): Promise<Site> => {
  if (!response.ok) throw new Error('Content service unavailable');
  return response.json();
 });
-export const imageUrl = (media?: Media) => media?.url ? (media.url.startsWith('/') ? `${process.env.NEXT_PUBLIC_CMS_URL || ''}${media.url}` : media.url) : undefined;
+export const imageUrl = (media?: Media) => media?.url ? (media.url.startsWith('/') ? `${process.env.CMS_PUBLIC_URL || process.env.NEXT_PUBLIC_CMS_URL || ''}${media.url}` : media.url) : undefined;
